@@ -1,17 +1,17 @@
 import subprocess
 import re
 
-def get_connected_ssid():
-    # The full path to the airport utility on macOS
-    airport_path = "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport"
+def get_wifi_scutil():
+    # We pipe commands into scutil to read the AirPort (Wi-Fi) state dictionary
+    cmd = "printf 'get State:/Network/Interface/en0/AirPort\\nd.show\\n' | scutil"
     
     try:
-        # Run the command
-        process = subprocess.run([airport_path, "-I"], capture_output=True, text=True)
+        # shell=True is required here to handle the pipe (|)
+        process = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         output = process.stdout
         
-        # Use Regex to find ' SSID: <name>'
-        match = re.search(r" SSID: (.+)", output)
+        # We are looking for the key "SSID_STR"
+        match = re.search(r'\s+SSID_STR : (.+)', output)
         
         if match:
             return match.group(1).strip()
@@ -19,9 +19,12 @@ def get_connected_ssid():
             return None
             
     except Exception as e:
-        print(f"Error fetching SSID: {e}")
+        print(f"Error: {e}")
         return None
 
-# Test it
-current_ssid = get_connected_ssid()
-print(f"Connected to: {current_ssid}")
+# Run it
+ssid = get_wifi_scutil()
+if ssid:
+    print(f"Connected to: {ssid}")
+else:
+    print("Could not retrieve SSID. Permissions might be fully blocked.")
