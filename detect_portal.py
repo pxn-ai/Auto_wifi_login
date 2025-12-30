@@ -2,53 +2,50 @@ import urllib.request
 import ssl
 
 def check_network_state():
-    # Apple's official endpoint for checking Wi-Fi login status
-    # It returns exactly one word: "Success" if you are online.
+    # Apple's test URL
     test_url = "http://captive.apple.com/hotspot-detect.html"
     
     try:
-        # Create a context that ignores SSL errors (captive portals often have bad certs)
+        # Ignore SSL errors (standard for captive portals)
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-
-        # Attempt to open the URL
-        req = urllib.request.Request(test_url)
         
-        # We use a custom opener to catch the redirect URL
+        # Fake a browser User-Agent (some networks block Python scripts)
+        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+        req = urllib.request.Request(test_url, headers=headers)
+        
+        # Custom opener to track redirects
         opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ctx))
         response = opener.open(req, timeout=5)
         
-        # Read the content
-        content = response.read().decode('utf-8').strip()
+        # Read content
+        raw_content = response.read().decode('utf-8')
         final_url = response.geturl()
 
-        if content == "Success":
-            print("✅ Status: ONLINE (Already logged in)")
+        # Debugging: Show us exactly what we got!
+        print(f"DEBUG: Final URL: {final_url}")
+        print(f"DEBUG: Content received: '{raw_content.strip()}'")
+
+        # LOOSE CHECK: If the URL is still Apple's AND "Success" is in the text -> Online
+        if "captive.apple.com" in final_url and "Success" in raw_content:
             return "ONLINE", final_url
+            
+        # If URL changed OR "Success" is missing -> Captive
         else:
-            # If content isn't "Success", we are likely at a login page
-            print(f"⚠️ Status: CAPTIVE PORTAL DETECTED")
-            print(f"Redirected to: {final_url}")
             return "LOGIN_NEEDED", final_url
 
     except Exception as e:
-        print(f"❌ Status: OFFLINE (Wi-Fi might be off or disconnected)")
         print(f"Error: {e}")
         return "OFFLINE", None
 
-# --- AUTOMATION LOGIC ---
-status, login_url = check_network_state()
+# --- TEST ---
+status, url = check_network_state()
 
-if status == "LOGIN_NEEDED":
-    # IDENTIFY THE NETWORK BASED ON THE URL
-    
-    if "moratuwa.ac.lk" in login_url or "10.10." in login_url:
-        print(">> Detected University Network. Initiating Uni Login...")
-        # Run your Uni login function here
-        
-    elif "starbucks" in login_url:
-        print(">> Detected Starbucks. Clicking Accept...")
-        
-    else:
-        print(f">> Unknown Login Page: {login_url}")
+if status == "ONLINE":
+    print("✅ Status: ONLINE (No login needed)")
+elif status == "LOGIN_NEEDED":
+    print(f"⚠️ Status: CAPTIVE PORTAL DETECTED")
+    print(f"   Target Login Page: {url}")
+else:
+    print("❌ Status: OFFLINE")
