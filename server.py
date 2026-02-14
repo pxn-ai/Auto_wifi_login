@@ -15,7 +15,8 @@ def login():
         password = request.form.get('password')
         print(f"\n[+] LOGIN RECEIVED via HTTPS!")
         print(f"    User: {username}")
-        print(f"    Pass: {password}")
+        # SECURITY: Never log passwords, even in test environments
+        print(f"    Pass: {'*' * len(password) if password else '(empty)'}")
         return "Login Successful", 200
 
     return "<h1>Fake UoM Login Page</h1>", 200

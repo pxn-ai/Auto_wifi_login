@@ -2,12 +2,17 @@ import subprocess
 import re
 
 def get_wifi_scutil():
-    # We pipe commands into scutil to read the AirPort (Wi-Fi) state dictionary
-    cmd = "printf 'get State:/Network/Interface/en0/AirPort\\nd.show\\n' | scutil"
+    # Use scutil with stdin to avoid shell=True security risk
+    scutil_input = "get State:/Network/Interface/en0/AirPort\nd.show\n"
     
     try:
-        # shell=True is required here to handle the pipe (|)
-        process = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        # SECURITY: Avoid shell=True by piping input directly to subprocess
+        process = subprocess.run(
+            ["scutil"],
+            input=scutil_input,
+            capture_output=True,
+            text=True
+        )
         output = process.stdout
         
         # We are looking for the key "SSID_STR"

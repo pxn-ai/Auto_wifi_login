@@ -6,7 +6,8 @@ def check_network_state():
     test_url = "http://captive.apple.com/hotspot-detect.html"
     
     try:
-        # Ignore SSL errors (standard for captive portals)
+        # SECURITY WARNING: SSL verification disabled for captive portal detection.
+        # This is intentional but allows MITM attacks - only use on trusted networks.
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE

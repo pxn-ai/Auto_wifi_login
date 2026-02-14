@@ -2,16 +2,19 @@ import urllib.request
 import urllib.parse
 import ssl
 import time
+import os
 
 # --- CONFIGURATION ---
+# SECURITY: Load credentials from environment variables instead of hardcoding
+# Set these in your shell: export TEST_LAB_USER="..." export TEST_LAB_PASS="..."
 KNOWN_NETWORKS = {
     "Test_Lab_Pi": {
         # TRIGGER: We now look for specific TEXT on the page, not just the URL
         "trigger_content": "Lord of the Pings", 
         
         "type": "POST",
-        "username": "TestUser123",
-        "password": "MySecretPassword",
+        "username": os.environ.get("TEST_LAB_USER", ""),
+        "password": os.environ.get("TEST_LAB_PASS", ""),
         "user_field": "student_id",      
         "pass_field": "student_pass"
     },
@@ -20,8 +23,8 @@ KNOWN_NETWORKS = {
         "trigger_url": "moratuwa.ac.lk",
         
         "type": "POST",
-        "username": "YOUR_REAL_ID",
-        "password": "YOUR_REAL_PASS",
+        "username": os.environ.get("UNI_USER", ""),
+        "password": os.environ.get("UNI_PASS", ""),
         "user_field": "auth_user",      
         "pass_field": "auth_pass"
     }
@@ -30,6 +33,9 @@ KNOWN_NETWORKS = {
 def check_network_state():
     test_url = "http://captive.apple.com/hotspot-detect.html"
     try:
+        # SECURITY WARNING: SSL verification is disabled to handle captive portal
+        # redirects. This is intentional but allows MITM attacks. Only use on
+        # trusted networks for captive portal detection.
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
@@ -67,6 +73,7 @@ def login_to_network(url, config):
         # In our Pi scenario, we post to the URL we are currently on.
         req = urllib.request.Request(url, data=encoded_data, method="POST")
         
+        # SECURITY WARNING: SSL verification disabled for captive portal compatibility
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
